@@ -1,0 +1,304 @@
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
+using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Session;
+using MediaBrowser.Model.Session;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Jellyfin.Plugin.AudioTrackSelector.Services;
+
+/// <summary>
+/// Background service that monitors playback sessions for false positive detection.
+/// </summary>
+public class PlaybackMonitorService : IHostedService, IDisposable
+{
+    private readonly ISessionManager _sessionManager;
+    private readonly ILogger<PlaybackMonitorService> _logger;
+    private readonly ConcurrentDictionary<string, PlaybackMonitorState> _monitoredSessions;
+    private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PlaybackMonitorService"/> class.
+    /// </summary>
+    /// <param name="sessionManager">Session manager for playback events.</param>
+    /// <param name="logger">Logger instance.</param>
+    public PlaybackMonitorService(
+        ISessionManager sessionManager,
+        ILogger<PlaybackMonitorService> logger)
+    {
+        _sessionManager = sessionManager;
+        _logger = logger;
+        _monitoredSessions = new ConcurrentDictionary<string, PlaybackMonitorState>();
+    }
+
+    /// <inheritdoc />
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Audio Track Selector - Playback Monitor Service starting");
+
+        // Subscribe to session manager events
+        _sessionManager.PlaybackStart += OnPlaybackStart;
+        _sessionManager.PlaybackProgress += OnPlaybackProgress;
+        _sessionManager.PlaybackStopped += OnPlaybackStopped;
+
+        _logger.LogInformation("Audio Track Selector - Playback Monitor Service started");
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Audio Track Selector - Playback Monitor Service stopping");
+
+        // Unsubscribe from events
+        _sessionManager.PlaybackStart -= OnPlaybackStart;
+        _sessionManager.PlaybackProgress -= OnPlaybackProgress;
+        _sessionManager.PlaybackStopped -= OnPlaybackStopped;
+
+        // Clear monitored sessions
+        _monitoredSessions.Clear();
+
+        _logger.LogInformation("Audio Track Selector - Playback Monitor Service stopped");
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles playback start events.
+    /// </summary>
+    private void OnPlaybackStart(object? sender, PlaybackProgressEventArgs e)
+    {
+        try
+        {
+            if (e?.Session == null || string.IsNullOrEmpty(e.Session.Id))
+            {
+                return;
+            }
+
+            var sessionId = e.Session.Id;
+
+            // Initialize monitoring state for this session
+            var state = new PlaybackMonitorState
+            {
+                InitialAudioStreamIndex = e?.AudioStreamIndex,
+                StartTime = DateTime.UtcNow,
+                AudioStreamChangeCount = 0,
+                MuteDetected = false,
+                LastProgressUpdate = DateTime.UtcNow
+            };
+
+            _monitoredSessions[sessionId] = state;
+
+            _logger.LogDebug(
+                "Playback started - Session: {SessionId}, User: {UserName}, Client: {ClientName}, " +
+                "Item: {ItemName}, Initial Audio Track: {AudioTrack}",
+                sessionId,
+                e.Session.UserName,
+                e.Session.Client,
+                e.Item?.Name,
+                state.InitialAudioStreamIndex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling playback start event");
+        }
+    }
+
+    /// <summary>
+    /// Handles playback progress events.
+    /// </summary>
+    private void OnPlaybackProgress(object? sender, PlaybackProgressEventArgs e)
+    {
+        try
+        {
+            if (e?.Session == null || string.IsNullOrEmpty(e.Session.Id))
+            {
+                return;
+            }
+
+            var sessionId = e.Session.Id;
+
+            if (!_monitoredSessions.TryGetValue(sessionId, out var state))
+            {
+                // Session not being monitored (might have started before plugin loaded)
+                return;
+            }
+
+            // Update last progress time
+            state.LastProgressUpdate = DateTime.UtcNow;
+
+            // Check for false positive indicators
+            DetectFalsePositive(sessionId, e, state);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling playback progress event");
+        }
+    }
+
+    /// <summary>
+    /// Handles playback stopped events.
+    /// </summary>
+    private void OnPlaybackStopped(object? sender, PlaybackStopEventArgs e)
+    {
+        try
+        {
+            if (e?.Session == null || string.IsNullOrEmpty(e.Session.Id))
+            {
+                return;
+            }
+
+            var sessionId = e.Session.Id;
+
+            _logger.LogDebug(
+                "Playback stopped - Session: {SessionId}, Item: {ItemName}",
+                sessionId,
+                e.Item?.Name);
+
+            // Remove session from monitoring
+            _monitoredSessions.TryRemove(sessionId, out _);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling playback stopped event");
+        }
+    }
+
+    /// <summary>
+    /// Detects false positive indicators in playback progress.
+    /// </summary>
+    private void DetectFalsePositive(string sessionId, PlaybackProgressEventArgs e, PlaybackMonitorState state)
+    {
+        var timeSinceStart = DateTime.UtcNow - state.StartTime;
+
+        // Check for rapid audio stream switching
+        var currentAudioIndex = e?.AudioStreamIndex;
+        if (currentAudioIndex.HasValue &&
+            state.InitialAudioStreamIndex.HasValue &&
+            currentAudioIndex != state.InitialAudioStreamIndex)
+        {
+            state.AudioStreamChangeCount++;
+
+            _logger.LogDebug(
+                "Audio stream changed in session {SessionId}: {OldIndex} → {NewIndex} " +
+                "(Total changes: {ChangeCount}, Time since start: {TimeSinceStart:F1}s)",
+                sessionId,
+                state.InitialAudioStreamIndex,
+                currentAudioIndex,
+                state.AudioStreamChangeCount,
+                timeSinceStart.TotalSeconds);
+
+            // Update initial index to current for tracking subsequent changes
+            state.InitialAudioStreamIndex = currentAudioIndex;
+
+            // Detect rapid switching (≥2 changes within 60 seconds)
+            if (state.AudioStreamChangeCount >= 2 && timeSinceStart < TimeSpan.FromSeconds(60))
+            {
+                _logger.LogWarning(
+                    "FALSE POSITIVE DETECTED: Rapid audio switching in session {SessionId}. " +
+                    "User: {UserName}, Client: {ClientName}, Device: {DeviceName}, " +
+                    "Item: {ItemName}, Switch count: {SwitchCount}, Time: {TimeSinceStart:F1}s",
+                    sessionId,
+                    e.Session.UserName,
+                    e.Session.Client,
+                    e.Session.DeviceName,
+                    e.Item?.Name,
+                    state.AudioStreamChangeCount,
+                    timeSinceStart.TotalSeconds);
+            }
+        }
+
+        // Check for immediate mute (within 10 seconds of start)
+        if (e?.IsMuted == true &&
+            !state.MuteDetected &&
+            timeSinceStart < TimeSpan.FromSeconds(10))
+        {
+            state.MuteDetected = true;
+
+            _logger.LogWarning(
+                "Potential FALSE POSITIVE: User muted within 10 seconds of playback start. " +
+                "Session: {SessionId}, User: {UserName}, Client: {ClientName}, Item: {ItemName}",
+                sessionId,
+                e.Session.UserName,
+                e.Session.Client,
+                e.Item?.Name);
+        }
+
+        // Check for repeated seeks to beginning (might indicate issues)
+        if (e?.PositionTicks.HasValue == true &&
+            e.PositionTicks < TimeSpan.FromSeconds(5).Ticks &&
+            timeSinceStart > TimeSpan.FromSeconds(15))
+        {
+            _logger.LogDebug(
+                "User seeked back to beginning: Session {SessionId}, Time since start: {TimeSinceStart:F1}s",
+                sessionId,
+                timeSinceStart.TotalSeconds);
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes resources.
+    /// </summary>
+    /// <param name="disposing">Whether to dispose managed resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            // Unsubscribe from events
+            _sessionManager.PlaybackStart -= OnPlaybackStart;
+            _sessionManager.PlaybackProgress -= OnPlaybackProgress;
+            _sessionManager.PlaybackStopped -= OnPlaybackStopped;
+
+            _monitoredSessions.Clear();
+        }
+
+        _disposed = true;
+    }
+}
+
+/// <summary>
+/// Represents the monitoring state for a playback session.
+/// </summary>
+internal class PlaybackMonitorState
+{
+    /// <summary>
+    /// Gets or sets the initial audio stream index when playback started.
+    /// </summary>
+    public int? InitialAudioStreamIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time when playback started.
+    /// </summary>
+    public DateTime StartTime { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of times the audio stream has been changed.
+    /// </summary>
+    public int AudioStreamChangeCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether mute was detected.
+    /// </summary>
+    public bool MuteDetected { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time of the last progress update.
+    /// </summary>
+    public DateTime? LastProgressUpdate { get; set; }
+}

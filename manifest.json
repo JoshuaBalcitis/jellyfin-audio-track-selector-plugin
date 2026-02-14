@@ -1,0 +1,76 @@
+[
+  {
+    "guid": "a7f3d8e1-9c2b-4a5d-8f1e-3b4c5d6e7f8a",
+    "name": "Audio Track Selector",
+    "description": "Automatically selects the optimal audio track based on client device capabilities, balancing quality and compatibility. Prioritizes tracks that sound best AND can actually be decoded by the client (e.g., avoiding TrueHD on incompatible devices, preferring DD+ Atmos when supported).",
+    "overview": "Intelligent audio track selection for optimal playback quality",
+    "owner": "joshuabalcitis",
+    "category": "General",
+    "versions": [
+      {
+        "version": "2.1.0.0",
+        "changelog": "- NEW: PlaybackInfo response filter - modifies DefaultAudioStreamIndex BEFORE client receives it\n- Most reliable approach: client starts playback with correct audio track from the beginning\n- No longer depends on client handling SetAudioStreamIndex general command\n- Keeps PlaybackStart event handler as backup\n- Compatible with Jellyfin 10.11.6",
+        "targetAbi": "10.11.6.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v2.1.0.0/jellyfin-plugin-audioTrackselector_2.1.0.0.zip",
+        "checksum": "b4c14e9b3dd89a350c9dccefcc76391d",
+        "timestamp": "2026-02-14T17:00:00Z"
+      },
+      {
+        "version": "2.0.1.0",
+        "changelog": "- FIX: Session not found error when sending SetAudioStreamIndex command\n- Was passing userId instead of sessionId as controllingSessionId parameter\n- Compatible with Jellyfin 10.11.6",
+        "targetAbi": "10.11.6.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v2.0.1.0/jellyfin-plugin-audioTrackselector_2.0.1.0.zip",
+        "checksum": "7a22cceade27ab80f178db5ddd84a6e1",
+        "timestamp": "2026-02-14T16:30:00Z"
+      },
+      {
+        "version": "2.0.0.0",
+        "changelog": "- MAJOR: Rebuilt for Jellyfin 10.11.6 (.NET 9.0)\n- Uses IHostedService (now supported in 10.11.x) for reliable PlaybackStart event subscription\n- Actively switches audio tracks via SetAudioStreamIndex command\n- Removed broken Plugin constructor service resolution hack\n- Clean architecture: PlaybackInterceptorService handles all event logic",
+        "targetAbi": "10.11.6.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v2.0.0.0/jellyfin-plugin-audioTrackselector_2.0.0.0.zip",
+        "checksum": "9222405f5db980f487aab5dcabc18eeb",
+        "timestamp": "2026-02-14T12:00:00Z"
+      },
+      {
+        "version": "1.0.4.0",
+        "changelog": "- MAJOR FIX: Actually switches audio tracks during playback using SessionManager commands\n- Uses PlaybackStart event to send SetAudioStreamIndex command to client\n- Previous versions only logged recommendations - this version ACTIVELY switches tracks\n- May cause brief audio interruption during switch (unavoidable with current Jellyfin API)\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.4.0/jellyfin-plugin-audioTrackselector_1.0.4.0.zip",
+        "checksum": "6a39c57cdfd7afe843d687831dae5132",
+        "timestamp": "2026-02-14T03:00:00Z"
+      },
+      {
+        "version": "1.0.3.0",
+        "changelog": "- CRITICAL FIX: Register AudioTrackMediaSourceProvider in DI container\n- Plugin now actually intercepts playback and selects audio tracks\n- Adds IHttpContextAccessor registration for device profile detection\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.3.0/jellyfin-plugin-audioTrackselector_1.0.3.0.zip",
+        "checksum": "5bc30c2bd9368b958442e9468e2c064c",
+        "timestamp": "2026-02-14T02:50:00Z"
+      },
+      {
+        "version": "1.0.2.0",
+        "changelog": "- Enhanced logging: Shows original vs selected track with full track list\n- Better visibility into audio track selection decisions\n- Added visual markers (→) to indicate selected track\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.2.0/jellyfin-plugin-audioTrackselector_1.0.2.0.zip",
+        "checksum": "1966196613f7816801d6a409731e44be",
+        "timestamp": "2026-02-14T02:45:00Z"
+      },
+      {
+        "version": "1.0.1.0",
+        "changelog": "- FIX: Proper event subscription using singleton service pattern\n- PlaybackEntryPoint now correctly subscribes to playback events\n- Improved initialization reliability in Jellyfin 10.10.7\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.1.0/jellyfin-plugin-audioTrackselector_1.0.1.0.zip",
+        "checksum": "043dad85530e7801468b67894867bffd",
+        "timestamp": "2026-02-14T02:38:00Z"
+      },
+      {
+        "version": "1.0.0.0",
+        "changelog": "- Initial release\n- Automatic audio track selection based on device profiles\n- Weighted scoring algorithm (40% codec quality, 30% channels, 15% bitrate, 10% spatial, 5% language)\n- Special handling for Apple TV/SwiftFin (excludes TrueHD, prefers DD+ Atmos)\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.0.0/jellyfin-plugin-audioTrackselector_1.0.0.0.zip",
+        "checksum": "3d4197175e837cf32a7fb494f15c304d",
+        "timestamp": "2026-02-13T22:00:00Z"
+      }
+    ]
+  }
+]
