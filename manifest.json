@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "2.1.0.0",
+        "changelog": "- NEW: PlaybackInfo response filter - modifies DefaultAudioStreamIndex BEFORE client receives it\n- Most reliable approach: client starts playback with correct audio track from the beginning\n- No longer depends on client handling SetAudioStreamIndex general command\n- Keeps PlaybackStart event handler as backup\n- Compatible with Jellyfin 10.11.6",
+        "targetAbi": "10.11.6.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v2.1.0.0/jellyfin-plugin-audioTrackselector_2.1.0.0.zip",
+        "checksum": "b4c14e9b3dd89a350c9dccefcc76391d",
+        "timestamp": "2026-02-14T17:00:00Z"
+      },
+      {
         "version": "2.0.1.0",
         "changelog": "- FIX: Session not found error when sending SetAudioStreamIndex command\n- Was passing userId instead of sessionId as controllingSessionId parameter\n- Compatible with Jellyfin 10.11.6",
         "targetAbi": "10.11.6.0",
