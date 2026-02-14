@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.0.4.0",
+        "changelog": "- MAJOR FIX: Actually switches audio tracks during playback using SessionManager commands\n- Uses PlaybackStart event to send SetAudioStreamIndex command to client\n- Previous versions only logged recommendations - this version ACTIVELY switches tracks\n- May cause brief audio interruption during switch (unavoidable with current Jellyfin API)\n- Compatible with Jellyfin 10.10.7",
+        "targetAbi": "10.10.7.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v1.0.4.0/jellyfin-plugin-audioTrackselector_1.0.4.0.zip",
+        "checksum": "6a39c57cdfd7afe843d687831dae5132",
+        "timestamp": "2026-02-14T03:00:00Z"
+      },
+      {
         "version": "1.0.3.0",
         "changelog": "- CRITICAL FIX: Register AudioTrackMediaSourceProvider in DI container\n- Plugin now actually intercepts playback and selects audio tracks\n- Adds IHttpContextAccessor registration for device profile detection\n- Compatible with Jellyfin 10.10.7",
         "targetAbi": "10.10.7.0",
