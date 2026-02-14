@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "2.0.0.0",
+        "changelog": "- MAJOR: Rebuilt for Jellyfin 10.11.6 (.NET 9.0)\n- Uses IHostedService (now supported in 10.11.x) for reliable PlaybackStart event subscription\n- Actively switches audio tracks via SetAudioStreamIndex command\n- Removed broken Plugin constructor service resolution hack\n- Clean architecture: PlaybackInterceptorService handles all event logic",
+        "targetAbi": "10.11.6.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v2.0.0.0/jellyfin-plugin-audioTrackselector_2.0.0.0.zip",
+        "checksum": "9222405f5db980f487aab5dcabc18eeb",
+        "timestamp": "2026-02-14T12:00:00Z"
+      },
+      {
         "version": "1.0.4.0",
         "changelog": "- MAJOR FIX: Actually switches audio tracks during playback using SessionManager commands\n- Uses PlaybackStart event to send SetAudioStreamIndex command to client\n- Previous versions only logged recommendations - this version ACTIVELY switches tracks\n- May cause brief audio interruption during switch (unavoidable with current Jellyfin API)\n- Compatible with Jellyfin 10.10.7",
         "targetAbi": "10.10.7.0",
