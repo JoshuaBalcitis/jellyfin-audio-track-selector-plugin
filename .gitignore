@@ -15,4 +15,5 @@ dist/
 .vs/
 .vscode/
 .idea/
+.claude/
 *.swp

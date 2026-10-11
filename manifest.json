@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "3.0.0.0",
+        "changelog": "Jellyfin 12.2 / .NET 10 build. Select audio before playback planning; preserve explicit track choices; honor codec/container conditions and request limits; prefer configured language; remove unsafe fallback and late runtime switching.",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://github.com/JoshuaBalcitis/jellyfin-audio-track-selector-plugin/releases/download/v3.0.0.0/jellyfin-plugin-audioTrackselector_3.0.0.0.zip",
+        "checksum": "6a0c435a21a4c257abdee31dd18fc7d2",
+        "timestamp": "2026-10-11T17:00:00Z"
+      },
+      {
         "version": "2.1.0.0",
         "changelog": "- NEW: PlaybackInfo response filter - modifies DefaultAudioStreamIndex BEFORE client receives it\n- Most reliable approach: client starts playback with correct audio track from the beginning\n- No longer depends on client handling SetAudioStreamIndex general command\n- Keeps PlaybackStart event handler as backup\n- Compatible with Jellyfin 10.11.6",
         "targetAbi": "10.11.6.0",

@@ -14,7 +14,6 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         // Set default configuration values
         Enabled = true;
-        EnableFalsePositiveDetection = true;
         PreferredAudioLanguage = "eng";
     }
 
@@ -22,11 +21,6 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets a value indicating whether the plugin is enabled.
     /// </summary>
     public bool Enabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether false positive detection is enabled.
-    /// </summary>
-    public bool EnableFalsePositiveDetection { get; set; }
 
     /// <summary>
     /// Gets or sets the preferred audio language (ISO 639 code, e.g., "eng", "spa", "fra").
