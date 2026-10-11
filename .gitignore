@@ -5,6 +5,9 @@
 # Distribution artifacts
 dist/
 
+# Local task tracking
+tasks/
+
 # NuGet
 *.nupkg
 
